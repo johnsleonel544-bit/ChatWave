@@ -1,6 +1,6 @@
 
 'use client';
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -27,12 +27,13 @@ const initialChatUsers: ChatUser[] = [
 
 
 export default function ChatListPage() {
-  const appContainerRef = useRef<HTMLDivElement>(null);
-  const [selectedUser, setSelectedUser] = useState<ChatUser | null>(null);
-  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
+  const appContainerRef = React.useRef<HTMLDivElement>(null);
+  const [selectedUser, setSelectedUser] = React.useState<ChatUser | null>(null);
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = React.useState(false);
 
-  useEffect(() => {
-    // Dropdown menu functionality
+  React.useEffect(() => {
+    // This effect is to handle dropdown menus imperatively
+    // A more React-idiomatic way would be to use state for dropdown visibility
     const dropdowns =
       appContainerRef.current?.querySelectorAll<HTMLDivElement>('.dropdown');
     const overlay = appContainerRef.current?.querySelector<HTMLDivElement>('.dropdown-overlay');
@@ -60,13 +61,14 @@ export default function ChatListPage() {
         button?.removeEventListener('click', handleClick);
       };
     });
-
+    
     const handleDocumentClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (!target.closest('.dropdown')) {
         closeAllDropdowns();
       }
     };
+
     document.addEventListener('click', handleDocumentClick);
     overlay?.addEventListener('click', closeAllDropdowns);
 
