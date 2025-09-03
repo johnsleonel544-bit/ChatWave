@@ -6,14 +6,17 @@ import Image from 'next/image';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Image as ImageIcon, FileText, Mic, Send, Trash2, Play, Pause } from 'lucide-react';
+import { Image as ImageIcon, FileText, Mic, Send, Trash2, Play, Pause, Check, CheckCheck } from 'lucide-react';
 
+
+type MessageStatus = 'sent' | 'delivered' | 'read';
 
 interface Message {
     sender: string;
     content: string;
     time: string;
     type: 'incoming' | 'outgoing';
+    status?: MessageStatus;
     messageType?: 'text' | 'image' | 'audio' | 'document';
     fileInfo?: { name: string; size: string; };
 }
@@ -26,11 +29,11 @@ const initialChatData: { [key: string]: any } = {
     status: 'last seen today at 10:24 AM',
     messages: [
       { sender: 'Sarah Johnson', content: 'Hey there! How\'s it going?', time: '10:15 AM', type: 'incoming', messageType: 'text' },
-      { sender: 'You', content: 'Pretty good! Just finished that project I was working on.', time: '10:18 AM', type: 'outgoing', messageType: 'text' },
+      { sender: 'You', content: 'Pretty good! Just finished that project I was working on.', time: '10:18 AM', type: 'outgoing', messageType: 'text', status: 'read' },
       { sender: 'Sarah Johnson', content: 'That\'s great to hear! By the way, are we still meeting tomorrow for coffee?', time: '10:20 AM', type: 'incoming', messageType: 'text' },
-      { sender: 'You', content: 'Absolutely! 10 AM at our usual place?', time: '10:21 AM', type: 'outgoing', messageType: 'text' },
+      { sender: 'You', content: 'Absolutely! 10 AM at our usual place?', time: '10:21 AM', type: 'outgoing', messageType: 'text', status: 'delivered' },
       { sender: 'Sarah Johnson', content: 'Perfect! I\'ll see you then. I have some exciting news to share with you!', time: '10:23 AM', type: 'incoming', messageType: 'text' },
-      { sender: 'You', content: 'Now you\'ve got me curious! Can\'t wait to hear it 😊', time: '10:24 AM', type: 'outgoing', messageType: 'text' },
+      { sender: 'You', content: 'Now you\'ve got me curious! Can\'t wait to hear it 😊', time: '10:24 AM', type: 'outgoing', messageType: 'text', status: 'sent' },
     ],
   },
   '2': {
@@ -40,7 +43,7 @@ const initialChatData: { [key: string]: any } = {
     status: '5 members, 3 online',
     messages: [
       { sender: 'Michael', content: 'Hey team, I\'ve finished the UI mockups for the new feature.', time: '8:10 PM', type: 'incoming', messageType: 'text' },
-      { sender: 'You', content: 'Great! I\'ll take a look and give some feedback.', time: '8:12 PM', type: 'outgoing', messageType: 'text' },
+      { sender: 'You', content: 'Great! I\'ll take a look and give some feedback.', time: '8:12 PM', type: 'outgoing', messageType: 'text', status: 'read' },
       { sender: 'Jessica', content: 'Looks awesome, Michael! Great work.', time: '8:15 PM', type: 'incoming', messageType: 'text' },
     ],
   },
@@ -73,17 +76,32 @@ const initialChatData: { [key: string]: any } = {
   }
 };
 
+const MessageStatusIndicator = ({ status }: { status?: MessageStatus }) => {
+    if (!status) return null;
+
+    const iconProps = {
+        className: `inline-block w-4 h-4 ml-1 ${status === 'read' ? 'text-primary' : 'text-gray-200'}`,
+        strokeWidth: 2.5
+    };
+
+    if (status === 'sent') {
+        return <Check {...iconProps} />;
+    }
+    if (status === 'delivered' || status === 'read') {
+        return <CheckCheck {...iconProps} />;
+    }
+    return null;
+};
+
 export default function ChatClient({ id }: { id: string }) {
   const appContainerRef = useRef<HTMLDivElement>(null);
   const chatInfo = useMemo(() => initialChatData[id] || initialChatData['1'], [id]);
   const [messages, setMessages] = useState<Message[]>(chatInfo.messages);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   
-  // Refs for file inputs
   const imageInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
 
-  // State for voice message recording
   const [isRecording, setIsRecording] = useState(false);
   const [isRecordingDialogOpen, setIsRecordingDialogOpen] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -112,8 +130,17 @@ export default function ChatClient({ id }: { id: string }) {
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       type: 'outgoing',
       sender: 'You',
+      status: 'sent'
     };
     setMessages(prev => [...prev, message]);
+
+    // Simulate status updates
+    setTimeout(() => {
+        setMessages(prev => prev.map(m => m === message ? { ...m, status: 'delivered' } : m));
+    }, 1000);
+     setTimeout(() => {
+        setMessages(prev => prev.map(m => m === message ? { ...m, status: 'read' } : m));
+    }, 2500);
   };
   
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'document') => {
@@ -137,7 +164,6 @@ export default function ChatClient({ id }: { id: string }) {
       };
       reader.readAsDataURL(file);
     }
-     // Reset file input
     e.target.value = '';
   };
   
@@ -159,7 +185,6 @@ export default function ChatClient({ id }: { id: string }) {
         setIsRecording(true);
     } catch (err) {
         console.error("Error starting recording:", err);
-        // Handle permission denied or other errors
     }
   };
 
@@ -188,7 +213,6 @@ export default function ChatClient({ id }: { id: string }) {
     setDuration(0);
   };
 
-  // Audio player logic
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -226,7 +250,6 @@ export default function ChatClient({ id }: { id: string }) {
   useEffect(() => {
     const appRef = appContainerRef.current;
     if (!appRef) return;
-    // Dropdown menu functionality
     const dropdowns = appRef.querySelectorAll<HTMLDivElement>('.dropdown');
     dropdowns?.forEach((dropdown) => {
       const button = dropdown.querySelector<HTMLDivElement>('.action-btn');
@@ -235,7 +258,6 @@ export default function ChatClient({ id }: { id: string }) {
         e.stopPropagation();
         dropdown.classList.toggle('active');
 
-        // Close other dropdowns
         dropdowns.forEach((otherDropdown) => {
           if (otherDropdown !== dropdown) {
             otherDropdown.classList.remove('active');
@@ -259,7 +281,6 @@ export default function ChatClient({ id }: { id: string }) {
     };
     document.addEventListener('click', handleDocumentClick);
 
-    // Send message functionality
     const messageInput = appRef.querySelector<HTMLInputElement>('.message-input');
     const sendButton = appRef.querySelector<HTMLDivElement>('.send-btn');
     
@@ -386,6 +407,22 @@ export default function ChatClient({ id }: { id: string }) {
                     <span>Wallpaper</span>
                   </div>
                   <div className="dropdown-item">
+                    <i className="fas fa-user-plus"></i>
+                    <span>Add to Contacts</span>
+                  </div>
+                  <div className="dropdown-item">
+                    <i className="fas fa-file-export"></i>
+                    <span>Export Chat</span>
+                  </div>
+                   <div className="dropdown-item">
+                    <i className="fas fa-thumbtack"></i>
+                    <span>Pin Chat</span>
+                  </div>
+                   <div className="dropdown-item">
+                    <i className="fas fa-external-link-square-alt"></i>
+                    <span>Add Shortcut</span>
+                  </div>
+                  <div className="dropdown-item">
                     <i className="fas fa-trash"></i>
                     <span>Clear Chat</span>
                   </div>
@@ -410,7 +447,10 @@ export default function ChatClient({ id }: { id: string }) {
                 )}
                 <div className="message-bubble">
                   {renderMessageContent(msg)}
-                  <div className="message-time">{msg.time}</div>
+                  <div className="message-time">
+                    {msg.time}
+                    {msg.type === 'outgoing' && <MessageStatusIndicator status={msg.status} />}
+                  </div>
                 </div>
               </div>
             ))}
@@ -456,11 +496,9 @@ export default function ChatClient({ id }: { id: string }) {
         </div>
       </div>
       
-       {/* Hidden file inputs */}
        <input type="file" ref={imageInputRef} className="hidden" accept="image/*,video/*" onChange={(e) => handleFileSelect(e, 'image')} />
        <input type="file" ref={docInputRef} className="hidden" accept=".pdf,.doc,.docx,.txt,.ppt,.pptx" onChange={(e) => handleFileSelect(e, 'document')} />
 
-        {/* Voice Recording Dialog */}
         <Dialog open={isRecordingDialogOpen} onOpenChange={setIsRecordingDialogOpen}>
             <DialogContent className="glass text-white">
                 <DialogHeader>
