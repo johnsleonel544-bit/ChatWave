@@ -6,24 +6,44 @@ import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, Phone, Info } from 'lucide-react';
+import { MessageSquare, Phone, Info, Check, CheckCheck } from 'lucide-react';
+
+type MessageStatus = 'sent' | 'delivered' | 'read';
 
 interface ChatUser {
   id: string;
   name: string;
   avatar: string;
   lastMessage: string;
+  lastMessageStatus?: MessageStatus;
   lastSeen: string;
   unread?: number;
 }
 
 const initialChatUsers: ChatUser[] = [
-    { id: '1', name: 'Sarah Johnson', avatar: 'https://i.pravatar.cc/150?img=1', lastMessage: 'Hey! Are we still meeting tomorrow?', lastSeen: 'today at 10:23 AM', unread: 3 },
-    { id: '2', name: 'Design Team', avatar: 'https://i.pravatar.cc/150?img=5', lastMessage: "Michael: I've finished the UI mockups", lastSeen: 'yesterday at 8:15 PM' },
-    { id: '3', name: 'Alex Rivera', avatar: 'https://i.pravatar.cc/150?img=12', lastMessage: 'The project deadline has been moved up', lastSeen: 'Wednesday', unread: 1 },
-    { id: '4', name: 'Mom', avatar: 'https://i.pravatar.cc/150?img=8', lastMessage: "Don't forget to call me this weekend", lastSeen: 'Monday' },
-    { id: '5', name: 'David Wilson', avatar: 'https://i.pravatar.cc/150?img=47', lastMessage: 'The concert was amazing!', lastSeen: 'Sep 12' },
+    { id: '1', name: 'Sarah Johnson', avatar: 'https://i.pravatar.cc/150?img=1', lastMessage: 'Hey! Are we still meeting tomorrow?', lastSeen: 'today at 10:23 AM', unread: 3, lastMessageStatus: 'delivered' },
+    { id: '2', name: 'Design Team', avatar: 'https://i.pravatar.cc/150?img=5', lastMessage: "Michael: I've finished the UI mockups", lastSeen: 'yesterday at 8:15 PM', lastMessageStatus: 'read' },
+    { id: '3', name: 'Alex Rivera', avatar: 'https://i.pravatar.cc/150?img=12', lastMessage: 'The project deadline has been moved up', lastSeen: 'Wednesday', unread: 1, lastMessageStatus: 'sent' },
+    { id: '4', name: 'Mom', avatar: 'https://i.pravatar.cc/150?img=8', lastMessage: "Don't forget to call me this weekend", lastSeen: 'Monday', lastMessageStatus: 'read' },
+    { id: '5', name: 'David Wilson', avatar: 'https://i.pravatar.cc/150?img=47', lastMessage: 'The concert was amazing!', lastSeen: 'Sep 12', lastMessageStatus: 'delivered' },
 ];
+
+const MessageStatusIndicator = ({ status }: { status?: MessageStatus }) => {
+    if (!status) return null;
+
+    const iconProps = {
+        className: `w-4 h-4 mr-1 ${status === 'read' ? 'text-primary' : 'text-gray-400'}`,
+        strokeWidth: 2.5
+    };
+
+    if (status === 'sent') {
+        return <Check {...iconProps} />;
+    }
+    if (status === 'delivered' || status === 'read') {
+        return <CheckCheck {...iconProps} />;
+    }
+    return null;
+}
 
 
 export default function ChatListPage() {
@@ -32,8 +52,6 @@ export default function ChatListPage() {
   const [isProfileDialogOpen, setIsProfileDialogOpen] = React.useState(false);
 
   React.useEffect(() => {
-    // This effect is to handle dropdown menus imperatively
-    // A more React-idiomatic way would be to use state for dropdown visibility
     const dropdowns =
       appContainerRef.current?.querySelectorAll<HTMLDivElement>('.dropdown');
     const overlay = appContainerRef.current?.querySelector<HTMLDivElement>('.dropdown-overlay');
@@ -88,7 +106,6 @@ export default function ChatListPage() {
   return (
       <div ref={appContainerRef}>
         <div className="dropdown-overlay"></div>
-        {/* Chat List Section */}
         <section className="chat-list-container glass">
           <div className="app-header">
             <Link href="/admin">
@@ -114,8 +131,28 @@ export default function ChatListPage() {
                     </div>
                   </Link>
                    <div className="dropdown-item">
-                    <i className="fas fa-bullhorn"></i>
+                    <i className="fas fa-satellite-dish"></i>
                     <span>New Community</span>
+                  </div>
+                  <div className="dropdown-item">
+                    <i className="fas fa-bullhorn"></i>
+                    <span>New Broadcast</span>
+                  </div>
+                  <div className="dropdown-item">
+                    <i className="fas fa-desktop"></i>
+                    <span>Linked Devices</span>
+                  </div>
+                  <div className="dropdown-item">
+                    <i className="fas fa-star"></i>
+                    <span>Starred Messages</span>
+                  </div>
+                  <div className="dropdown-item">
+                    <i className="fas fa-archive"></i>
+                    <span>Archived Chats</span>
+                  </div>
+                  <div className="dropdown-item">
+                    <i className="fas fa-poll"></i>
+                    <span>Create Poll</span>
                   </div>
                 </div>
               </div>
@@ -137,6 +174,22 @@ export default function ChatListPage() {
                   <div className="dropdown-item">
                     <i className="fas fa-moon"></i>
                     <span>Appearance</span>
+                  </div>
+                  <div className="dropdown-item">
+                    <i className="fas fa-shield-alt"></i>
+                    <span>Privacy</span>
+                  </div>
+                  <div className="dropdown-item">
+                    <i className="fas fa-bell"></i>
+                    <span>Notifications</span>
+                  </div>
+                   <div className="dropdown-item">
+                    <i className="fas fa-database"></i>
+                    <span>Data and Storage</span>
+                  </div>
+                  <div className="dropdown-item">
+                    <i className="fas fa-user-friends"></i>
+                    <span>Invite a Friend</span>
                   </div>
                    <div className="dropdown-item">
                     <i className="fas fa-question-circle"></i>
@@ -170,6 +223,7 @@ export default function ChatListPage() {
                   <div className="chat-details">
                     <div className="chat-name">{user.name}</div>
                     <div className="last-message">
+                      <MessageStatusIndicator status={user.lastMessageStatus} />
                       {user.lastMessage}
                     </div>
                   </div>
